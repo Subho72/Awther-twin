@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AetherTwin // India Climate Resilience Digital Twin</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+     
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- TOP NAVIGATION BAR -->
+        <header class="app-header">
+            <div class="header-left">
+                <button id="btn-header-menu" class="btn-header-menu" title="Toggle Sidebar Panels">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div class="logo-container">
+                    <span class="logo-dot pulse-cyan"></span>
+                    <h1 class="app-title">AETHER<span>TWIN // INDIA</span></h1>
+                    <span class="badge badge-sec">V2.4 LCL</span>
+                </div>
+            </div>
+            
+            <div class="header-center">
+                <div class="city-selector-wrapper">
+                    <i data-lucide="map-pin" class="input-icon"></i>
+                    <select id="city-selector">
+                        <option value="mumbai" selected>Mumbai (Coastal District)</option>
+                        <option value="chennai">Chennai (Coromandel Coast)</option>
+                        <option value="kolkata">Kolkata (Ganges Delta Basin)</option>
+                        <option value="newdelhi">New Delhi (Yamuna Floodplain)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <div class="google-hub-badge">
+                    <span class="hub-dot pulse-cyan"></span>
+                    <span class="hub-text">Google FloodHub Live</span>
+                </div>
+                <div class="status-indicator">
+                    <span class="status-text">SYSTEM READY</span>
+                    <span class="status-light glow-green" id="system-status-light"></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN LAYOUT -->
+        <div class="main-content">
+            <!-- SIDEBAR: SIMULATION CONTROLS -->
+            <aside class="sidebar control-panel">
+                <div class="panel-section">
+                    <h2 class="section-title"><i data-lucide="sliders" class="title-icon"></i> SIMULATION PARAMETERS</h2>
+                    
+                    <div class="live-weather-bar" style="display: flex; gap: 8px; margin-bottom: 12px;">
+                        <button class="btn btn-secondary live-btn" id="btn-live-weather" style="flex: 1; font-size: 10px; padding: 6px 8px;" title="Sync real-time weather from Open-Meteo API">
+                            <i data-lucide="cloud-lightning" class="btn-icon"></i> LIVE WEATHER API
+                        </button>
+                        <button class="btn btn-secondary live-btn-gps" id="btn-live-gps" style="font-size: 10px; padding: 6px 8px;" title="Center map on your real-life GPS coordinates">
+                            <i data-lucide="crosshair" class="btn-icon"></i> MY GPS
+                        </button>
+                    </div>
+                    
+                    <!-- Rainfall Slider -->
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Rainfall Increase</span>
+                            <span class="control-value" id="val-rainfall">+0%</span>
+                        </div>
+                        <input type="range" id="slider-rainfall" min="0" max="150" value="0" class="neon-slider">
+                        <div class="slider-marks">
+                            <span>Normal</span>
+                            <span>+50%</span>
+                            <span>+100%</span>
+                            <span>+150%</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Storm Surge Slider -->
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span id="label-surge">Storm Surge / River Rise</span>
+                            <span class="control-value" id="val-surge">0.0m</span>
+                        </div>
+                        <input type="range" id="slider-surge" min="0" max="60" value="0" class="neon-slider" step="5">
+                        <div class="slider-marks">
+                            <span>0m</span>
+                            <span>2m</span>
+                            <span>4m</span>
+                            <span>6m</span>
+                        </div>
+                    </div>
+
+                    <!-- Wind Speed Slider -->
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Sustained Wind Speed</span>
+                            <span class="control-value" id="val-wind">15 km/h</span>
+                        </div>
+                        <input type="range" id="slider-wind" min="15" max="220" value="15" class="neon-slider">
+                        <div class="slider-marks">
+                            <span>Calm</span>
+                            <span>100 km/h</span>
+                            <span>Cat 5</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h2 class="section-title"><i data-lucide="layers" class="title-icon"></i> DIGITAL TWIN OVERLAYS</h2>
+                    <div class="overlay-toggles">
+                        <label class="toggle-control">
+                            <input type="checkbox" id="layer-elevation" checked>
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label"><i data-lucide="mountain"></i> Elevation Grid Heatmap</span>
+                        </label>
+                        <label class="toggle-control">
+                            <input type="checkbox" id="layer-roads" checked>
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label"><i data-lucide="git-fork"></i> Road Network & Runoff</span>
+                        </label>
+                        <label class="toggle-control">
+                            <input type="checkbox" id="layer-hospitals" checked>
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label"><i data-lucide="heart-pulse"></i> Critical Hospitals</span>
+                        </label>
+                        <label class="toggle-control">
+                            <input type="checkbox" id="layer-density">
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label"><i data-lucide="users"></i> Population Density Map</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="panel-section incident-dispatch-section">
+                    <h2 class="section-title"><i data-lucide="siren" class="title-icon"></i> INCIDENT DISPATCH COMMAND</h2>
+                    <div class="dispatch-controls" style="display: flex; flex-direction: column; gap: 8px;">
+                        <button class="btn btn-secondary dispatch-btn" id="btn-dispatch-ambulance" style="font-size: 10.5px; justify-content: flex-start;">
+                            <i data-lucide="ambulance" class="btn-icon" style="color: var(--neon-red);"></i> DISPATCH RESCUE AMBULANCE
+                        </button>
+                        <button class="btn btn-secondary dispatch-btn" id="btn-deploy-pumps" style="font-size: 10.5px; justify-content: flex-start;">
+                            <i data-lucide="circle-dot" class="btn-icon" style="color: var(--neon-cyan);"></i> DEPLOY DRAINAGE PUMPS
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel-section google-tech-section">
+                    <h2 class="section-title"><i data-lucide="cloud" class="title-icon"></i> GOOGLE CLOUD INTEGRATION</h2>
+                    <div class="google-controls">
+                        <!-- Google Earth Engine Sync Button -->
+                        <button class="btn btn-secondary google-btn" id="btn-gee-sync">
+                            <i data-lucide="refresh-cw" class="btn-icon"></i> SYNC GOOGLE EARTH ENGINE
+                        </button>
+                        <!-- Vertex AI Model Details -->
+                        <div class="vertex-status">
+                            <div class="vertex-header">
+                                <span class="vertex-dot pulse-cyan"></span>
+                                <span class="vertex-title">Vertex AI TPU Pipeline</span>
+                            </div>
+                            <span class="vertex-value">TensorFlow Runoff Model (v4.2 Active)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section dashboard-stats">
+                    <h2 class="section-title"><i data-lucide="activity" class="title-icon"></i> IMPACT ESTIMATOR</h2>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card" id="stat-risk">
+                            <div class="stat-header">
+                                <span class="stat-label">POPULATION RISK</span>
+                                <i data-lucide="alert-triangle" class="stat-icon text-cyan"></i>
+                            </div>
+                            <div class="stat-value">0%</div>
+                            <div class="stat-desc">0 citizens in flood zones</div>
+                        </div>
+
+                        <div class="stat-card" id="stat-roads">
+                            <div class="stat-header">
+                                <span class="stat-label">BLOCKED ROADS</span>
+                                <i data-lucide="navigation-off" class="stat-icon text-cyan"></i>
+                            </div>
+                            <div class="stat-value">0 / 6</div>
+                            <div class="stat-desc">Roads closed due to height</div>
+                        </div>
+
+                        <div class="stat-card" id="stat-hospitals">
+                            <div class="stat-header">
+                                <span class="stat-label">CRITICAL HOSPITALS</span>
+                                <i data-lucide="shield-alert" class="stat-icon text-cyan"></i>
+                            </div>
+                            <div class="stat-value">0 / 4</div>
+                            <div class="stat-desc">Hospitals near grid limits</div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" id="btn-run-simulation">
+                        <i data-lucide="play" class="btn-icon"></i> RUN RESILIENCE SIMULATION
+                    </button>
+                </div>
+            </aside>
+
+            <!-- CENTRAL MAP AREA -->
+            <main class="map-view-container">
+                <div id="map"></div>
+                
+                <!-- Sidebar Toggle Buttons -->
+                <button id="btn-toggle-left-sidebar" class="sidebar-toggle-btn left-btn" title="Toggle Simulation Controls">
+                    <i data-lucide="chevron-left"></i>
+                </button>
+                <button id="btn-toggle-right-sidebar" class="sidebar-toggle-btn right-btn" title="Toggle AI Analyst Panel">
+                    <i data-lucide="chevron-right"></i>
+                </button>
+                
+                <!-- Floating Info Widget -->
+                <div class="map-overlay-widget glass">
+                    <div class="widget-header">
+                        <h4>Geospatial Data Stream</h4>
+                        <span class="telemetry-badge pulse-cyan">LIVE</span>
+                    </div>
+                    <div class="widget-body">
+                        <div class="telemetry-row">
+                            <span>Terrain Resolution:</span>
+                            <strong>30m SRTM v3</strong>
+                        </div>
+                        <div class="telemetry-row">
+                            <span>Cell Saturation Level:</span>
+                            <strong id="telemetry-saturation">8.4%</strong>
+                        </div>
+                        <div class="telemetry-row">
+                            <span>Drainage Factor:</span>
+                            <strong id="telemetry-drainage">82.3m³/s</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Map Legend -->
+                <div class="map-legend glass">
+                    <h5 class="legend-title">Legend</h5>
+                    <div class="legend-items">
+                        <div class="legend-item"><span class="legend-color elevation-high"></span> Elevation (Safe Zone)</div>
+                        <div class="legend-item"><span class="legend-color elevation-low"></span> Elevation (Low-lying / Basin)</div>
+                        <div class="legend-item"><span class="legend-color water-normal"></span> Normal Waterways</div>
+                        <div class="legend-item"><span class="legend-color water-flooded"></span> Inundated Areas</div>
+                        <div class="legend-item"><span class="legend-icon hospital-safe">🏥</span> Hospital (Operational)</div>
+                        <div class="legend-item"><span class="legend-icon hospital-overloaded">🏥</span> Hospital (Overloaded)</div>
+                        <div class="legend-item"><span class="legend-icon camp-icon">⛺</span> Optimal Relief Camp</div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- RIGHT PANEL: AI ANALYST & TERMINAL -->
+            <aside class="sidebar details-panel">
+                <div class="panel-section terminal-section">
+                    <h2 class="section-title"><i data-lucide="terminal" class="title-icon"></i> SIMULATOR RUNTIME LOG</h2>
+                    <div class="terminal-container" id="terminal-logs">
+                        <div class="terminal-line system">[SYSTEM] AetherTwin Simulation Engine v2.4 initialized.</div>
+                        <div class="terminal-line system">[SYSTEM] Connect to digital map grid... OK</div>
+                        <div class="terminal-line system">[SYSTEM] Ready for telemetry simulation.</div>
+                    </div>
+                </div>
+
+                <div class="panel-section chat-section">
+                    <h2 class="section-title"><i data-lucide="bot" class="title-icon"></i> GEOSPATIAL AI ANALYST</h2>
+                    
+                    <div class="chat-container">
+                        <div class="chat-messages" id="chat-messages">
+                            <div class="chat-bubble ai">
+                                <div class="bubble-header">
+                                    <span class="bot-name">AetherTwin AI</span>
+                                    <span class="time-stamp">Now</span>
+                                </div>
+                                <div class="bubble-content">
+                                    Welcome. I am the Geospatial AI India Resilience Analyst. I can query regional weather models, delta elevations, road networks, and municipal hospital grids to simulate disasters.
+                                    <br><br>
+                                    Select one of the pre-set questions below, or input your own query.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Questions -->
+                        <div class="quick-questions-wrapper" id="suggestions-panel">
+                            <div class="quick-questions-header">
+                                <span class="quick-label">Suggested Scenario Inquiries:</span>
+                                <button id="btn-toggle-suggestions" class="btn-toggle-text" title="Toggle suggestions panel">
+                                    <i data-lucide="eye-off" class="btn-toggle-icon"></i> <span id="toggle-text">Hide</span>
+                                </button>
+                            </div>
+                            <div class="quick-questions" id="suggestions-chips">
+                                <button class="question-chip" data-question="What happens if rainfall increases by 40%?">
+                                    "What happens if rainfall increases by 40%?"
+                                </button>
+                                <button class="question-chip" data-question="Which roads will become inaccessible?">
+                                    "Which roads will become inaccessible?"
+                                </button>
+                                <button class="question-chip" data-question="Where should temporary relief camps be placed?">
+                                    "Where should temporary relief camps be placed?"
+                                </button>
+                                <button class="question-chip" data-question="Sync Google Earth Engine satellite data">
+                                    "Sync Google Earth Engine satellite data"
+                                </button>
+                                <button class="question-chip" data-question="Calculate detour routes using Google Maps Routing API">
+                                    "Calculate detour routes using Google Maps Routing API"
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Chat Input -->
+                        <div class="chat-input-wrapper">
+                            <input type="text" id="chat-input" placeholder="Ask about vulnerabilities or relief operations..." autocomplete="off">
+                            <button id="btn-chat-send" class="btn btn-icon-only">
+                                <i data-lucide="send"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+     
+    <!-- Custom JS -->
+    <script src="app.js"></script>
+</body>
+</html>
